@@ -1,9 +1,10 @@
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, login, authenticate
 from .forms import TaskForm
+from. models import Task
 # Create your views here.
 
 def home(request):
@@ -40,7 +41,10 @@ def signup(request):
                     })
         
 def tasks(request):
-    return render(request, 'tasks/tasks.html')
+    tasks = Task.objects.filter(user=request.user, datecompleted__isnull=True)
+    return render(request, 'tasks/tasks.html',{
+        'tasks': tasks
+    })
 
 def signout(request):
     logout(request)
@@ -89,13 +93,35 @@ def create_task(request):
                 new_task.user = request.user
                 print(new_task.save())
                 return redirect('tasks')
-            except:
+            except ValueError:
                 return render(request, 'tasks/create_task.html', {
                     'form': TaskForm,
-                    'error': 'User not valid.'
+                    'error': 'Please provide valid data.'
                 })
         else:
             return render(request, 'tasks/create_task.html', {
                 'form': TaskForm,
                 'error': 'Form not valid.'
             })
+
+def task_detail(request, task_id):
+    if request.method == 'GET':
+        task = get_object_or_404(Task, pk=task_id, user= request.user)
+        form = TaskForm(instance=task)
+        return render(request, 'tasks/task_detail.html', {
+            'task': task,
+            'form' : form
+        })
+    else:
+        try:
+            task = get_object_or_404(Task, pk=task_id, user= request.user)
+            form = TaskForm(request.POST, instance=task)
+            form.save()
+            return redirect('tasks')
+        except ValueError:
+            return render(request, 'tasks/task_detail.html', {
+            'task': task,
+            'form' : form,
+            'error': 'Error updating task.'
+        })
+        
