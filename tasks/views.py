@@ -3,6 +3,7 @@ from django.shortcuts import redirect, render
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, login, authenticate
+from .forms import TaskForm
 # Create your views here.
 
 def home(request):
@@ -39,7 +40,7 @@ def signup(request):
                     })
         
 def tasks(request):
-    return render(request, 'tasks.html')
+    return render(request, 'tasks/tasks.html')
 
 def signout(request):
     logout(request)
@@ -72,4 +73,29 @@ def signin(request):
             return render(request, 'signin.html', {
                 'form': AuthenticationForm,
                 'error': 'Could not login, form is not valid.'
+            })
+            
+def create_task(request):
+    if request.method == 'GET':
+        return render(request, 'tasks/create_task.html', {
+            'form': TaskForm
+        })
+    else:
+        print(request.POST)
+        form = TaskForm(request.POST)
+        if form.is_valid:
+            try:
+                new_task = form.save(commit=False)
+                new_task.user = request.user
+                print(new_task.save())
+                return redirect('tasks')
+            except:
+                return render(request, 'tasks/create_task.html', {
+                    'form': TaskForm,
+                    'error': 'User not valid.'
+                })
+        else:
+            return render(request, 'tasks/create_task.html', {
+                'form': TaskForm,
+                'error': 'Form not valid.'
             })
